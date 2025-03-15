@@ -8,14 +8,18 @@ import StaffForm from './StaffForm';
 import ProductList from './ProductList';
 import ProductForm from './ProductForm';
 import Settings from './Settings';
+import Analytics from './Analytics';
 import { useOrderStore } from '../store/orderStore';
 import { useStaffStore } from '../store/staffStore';
 import { useProductStore } from '../store/productStore';
 import { useAuthStore } from '../store/authStore';
 import { Order, Staff } from '../types';
 
+// Define a type for the view options
+type ViewType = 'dashboard' | 'orders' | 'staff' | 'products' | 'settings' | 'analytics';
+
 const Dashboard: React.FC = () => {
-  const [activeView, setActiveView] = useState<'dashboard' | 'orders' | 'staff' | 'products' | 'settings'>('dashboard');
+  const [activeView, setActiveView] = useState<ViewType>('dashboard');
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -125,36 +129,41 @@ const Dashboard: React.FC = () => {
         );
 
       case 'products':
-        return user?.role === 'admin' ? (
-          showProductForm ? (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Create New Product</h2>
-              <ProductForm
-                onSubmit={(data) => {
-                  addProduct(data);
-                  setShowProductForm(false);
-                }}
-                onCancel={() => setShowProductForm(false)}
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-800">Product Management</h1>
+        return showProductForm && user?.role === 'admin' ? (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4">Create New Product</h2>
+            <ProductForm
+              onSubmit={(data) => {
+                addProduct(data);
+                setShowProductForm(false);
+              }}
+              onCancel={() => setShowProductForm(false)}
+            />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-gray-800">Product Management</h1>
+              {user?.role === 'admin' && (
                 <button
                   onClick={() => setShowProductForm(true)}
                   className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                 >
                   Add Product
                 </button>
-              </div>
-              <ProductList
-                products={products}
-                onUpdate={updateProduct}
-                onDelete={deleteProduct}
-              />
+              )}
             </div>
-          )
+            <ProductList
+              products={products}
+              onUpdate={user?.role === 'admin' ? updateProduct : undefined}
+              onDelete={user?.role === 'admin' ? deleteProduct : undefined}
+            />
+          </div>
+        );
+
+      case 'analytics':
+        return user?.role === 'admin' ? (
+          <Analytics />
         ) : (
           <div className="p-8">
             <h1 className="text-2xl font-bold text-gray-800">Access Denied</h1>

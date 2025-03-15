@@ -1,10 +1,13 @@
 import React from 'react';
-import { LayoutDashboard, Package, Users, Settings, LogOut, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Package, Users, Settings, LogOut, ShoppingBag, BarChart } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 
+// Define a type for the view options
+type ViewType = 'dashboard' | 'orders' | 'staff' | 'products' | 'settings' | 'analytics';
+
 interface SidebarProps {
-  onNavigate: (view: 'dashboard' | 'orders' | 'staff' | 'products' | 'settings') => void;
+  onNavigate: (view: ViewType) => void;
   activeView: string;
   role?: 'admin' | 'staff';
 }
@@ -44,17 +47,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activeView, role }) => {
           <Package className="w-5 h-5" />
           <span>Orders</span>
         </button>
+        <button
+          onClick={() => onNavigate('products')}
+          className={`flex items-center gap-2 p-3 w-full rounded-lg ${
+            activeView === 'products' ? 'bg-gray-800' : 'hover:bg-gray-800'
+          }`}
+        >
+          <ShoppingBag className="w-5 h-5" />
+          <span>Products</span>
+        </button>
         {role === 'admin' && (
           <>
-            <button
-              onClick={() => onNavigate('products')}
-              className={`flex items-center gap-2 p-3 w-full rounded-lg ${
-                activeView === 'products' ? 'bg-gray-800' : 'hover:bg-gray-800'
-              }`}
-            >
-              <ShoppingBag className="w-5 h-5" />
-              <span>Products</span>
-            </button>
             <button
               onClick={() => onNavigate('staff')}
               className={`flex items-center gap-2 p-3 w-full rounded-lg ${
@@ -63,6 +66,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activeView, role }) => {
             >
               <Users className="w-5 h-5" />
               <span>Staff</span>
+            </button>
+            <button
+              onClick={() => onNavigate('analytics')}
+              className={`flex items-center gap-2 p-3 w-full rounded-lg ${
+                activeView === 'analytics' ? 'bg-gray-800' : 'hover:bg-gray-800'
+              }`}
+            >
+              <BarChart className="w-5 h-5" />
+              <span>Analytics</span>
             </button>
           </>
         )}

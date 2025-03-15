@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Order } from '../types';
-import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import OrderForm from './OrderForm';
 import OrderDetails from './OrderDetails';
 import { useAuthStore } from '../store/authStore';
@@ -16,6 +16,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(5);
   const user = useAuthStore(state => state.user);
@@ -43,10 +44,19 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
     ? orders 
     : orders.filter(order => order.createdBy === user?.id);
 
+  // Apply search filter
+  const searchFilteredOrders = searchQuery
+    ? filteredOrders.filter(order => 
+        order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.status.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : filteredOrders;
+
   // Apply status filter
   const statusFilteredOrders = statusFilter === 'all'
-    ? filteredOrders
-    : filteredOrders.filter(order => order.status === statusFilter);
+    ? searchFilteredOrders
+    : searchFilteredOrders.filter(order => order.status === statusFilter);
 
   // Pagination logic
   const indexOfLastOrder = currentPage * ordersPerPage;
@@ -102,22 +112,42 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Recent Orders</h2>
         
-        <div className="flex items-center gap-2">
-          <Filter size={18} className="text-gray-500" />
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value as Order['status'] | 'all');
-              setCurrentPage(1); // Reset to first page when filter changes
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="processing">Processing</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+        <div className="flex items-center gap-3">
+          {/* Search Input */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={16} className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search orders..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1); // Reset to first page when search changes
+              }}
+              className="pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          
+          {/* Status Filter */}
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-gray-500" />
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as Order['status'] | 'all');
+                setCurrentPage(1); // Reset to first page when filter changes
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
         </div>
       </div>
       

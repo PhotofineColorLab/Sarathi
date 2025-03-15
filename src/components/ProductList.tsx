@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductCategory } from '../types';
-import { Pencil, Trash2, Filter } from 'lucide-react';
+import { Pencil, Trash2, Filter, Search } from 'lucide-react';
 import ProductForm from './ProductForm';
 
 interface ProductListProps {
@@ -12,11 +12,22 @@ interface ProductListProps {
 const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete }) => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<ProductCategory | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Apply search filter
+  const searchFilteredProducts = searchQuery
+    ? products.filter(product => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : products;
 
   // Apply category filter
   const filteredProducts = categoryFilter === 'all'
-    ? products
-    : products.filter(product => product.category === categoryFilter);
+    ? searchFilteredProducts
+    : searchFilteredProducts.filter(product => product.category === categoryFilter);
 
   if (editingProduct) {
     return (
@@ -40,20 +51,37 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Products</h2>
           
-          <div className="flex items-center gap-2">
-            <Filter size={18} className="text-gray-500" />
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as ProductCategory | 'all')}
-              className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Categories</option>
-              <option value="Fans">Fans</option>
-              <option value="Lights">Lights</option>
-              <option value="Wires">Wires</option>
-              <option value="Switches">Switches</option>
-              <option value="Sockets">Sockets</option>
-            </select>
+          <div className="flex items-center gap-3">
+            {/* Search Input */}
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search size={16} className="text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            
+            {/* Category Filter */}
+            <div className="flex items-center gap-2">
+              <Filter size={18} className="text-gray-500" />
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value as ProductCategory | 'all')}
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Categories</option>
+                <option value="Fans">Fans</option>
+                <option value="Lights">Lights</option>
+                <option value="Wires">Wires</option>
+                <option value="Switches">Switches</option>
+                <option value="Sockets">Sockets</option>
+              </select>
+            </div>
           </div>
         </div>
         
@@ -94,20 +122,26 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
                     <td className="py-3 px-4">${product.price.toFixed(2)}</td>
                     <td className="py-3 px-4">{product.stock}</td>
                     <td className="py-3 px-4">
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setEditingProduct(product)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button
-                          onClick={() => onDelete?.(product.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                      {(onUpdate || onDelete) && (
+                        <div className="flex gap-2">
+                          {onUpdate && (
+                            <button
+                              onClick={() => setEditingProduct(product)}
+                              className="text-blue-500 hover:text-blue-700"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                          )}
+                          {onDelete && (
+                            <button
+                              onClick={() => onDelete(product.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
