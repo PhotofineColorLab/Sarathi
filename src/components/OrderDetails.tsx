@@ -1,6 +1,7 @@
 import React from 'react';
 import { Order } from '../types';
 import { ArrowLeft, Pencil } from 'lucide-react';
+import InvoiceGenerator from './InvoiceGenerator';
 
 interface OrderDetailsProps {
   order: Order;
@@ -123,6 +124,9 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ order, onClose, onEdit }) =
           </table>
         </div>
       </div>
+
+      {/* Invoice Generator */}
+      <InvoiceGenerator order={order} />
     </div>
   );
 };

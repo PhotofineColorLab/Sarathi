@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Product, ProductCategory } from '../types';
-import { Pencil, Trash2, Filter, Search } from 'lucide-react';
+import { Pencil, Trash2, Filter, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductForm from './ProductForm';
 
 interface ProductListProps {
@@ -13,6 +13,8 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<ProductCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage] = useState(5);
 
   // Apply search filter
   const searchFilteredProducts = searchQuery
@@ -28,6 +30,26 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
   const filteredProducts = categoryFilter === 'all'
     ? searchFilteredProducts
     : searchFilteredProducts.filter(product => product.category === categoryFilter);
+
+  // Pagination logic
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+
+  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   if (editingProduct) {
     return (
@@ -61,7 +83,10 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // Reset to first page when search changes
+                }}
                 className="pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -71,7 +96,10 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
               <Filter size={18} className="text-gray-500" />
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value as ProductCategory | 'all')}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value as ProductCategory | 'all');
+                  setCurrentPage(1); // Reset to first page when filter changes
+                }}
                 className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Categories</option>
@@ -99,8 +127,8 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
+              {currentProducts.length > 0 ? (
+                currentProducts.map((product) => (
                   <tr key={product.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">{product.id}</td>
                     <td className="py-3 px-4">
@@ -155,6 +183,56 @@ const ProductList: React.FC<ProductListProps> = ({ products, onUpdate, onDelete 
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination */}
+        {filteredProducts.length > 0 && (
+          <div className="flex justify-between items-center mt-6 px-4">
+            <div className="text-sm text-gray-500">
+              Showing {indexOfFirstProduct + 1} to {Math.min(indexOfLastProduct, filteredProducts.length)} of {filteredProducts.length} products
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={goToPreviousPage}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-md ${
+                  currentPage === 1
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              <div className="flex space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                  <button
+                    key={number}
+                    onClick={() => paginate(number)}
+                    className={`px-3 py-1 rounded-md ${
+                      currentPage === number
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {number}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={goToNextPage}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-md ${
+                  currentPage === totalPages
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
