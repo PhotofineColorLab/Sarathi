@@ -1,0 +1,244 @@
+:root {
+  /* Base colors */
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  
+  /* Card colors */
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  
+  /* Popover colors */
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  
+  /* Primary colors */
+  --primary: 221.2 83.2% 53.3%;
+  --primary-foreground: 210 40% 98%;
+  
+  /* Secondary colors */
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  
+  /* Muted colors */
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  
+  /* Accent colors */
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  
+  /* Destructive colors */
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+
+  /* Border colors */
+  --border: 214.3 31.8% 91.4%;
+  
+  /* Input colors */
+  --input: 214.3 31.8% 91.4%;
+  
+  /* Ring colors */
+  --ring: 221.2 83.2% 53.3%;
+  
+  /* Radius */
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 224.3 76.3% 48%;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  /* Global styles */
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Shadcn UI inspired components */
+  .shadcn-card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+
+  .shadcn-button-primary {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  .shadcn-button-secondary {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+
+  .shadcn-button-destructive {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90;
+  }
+
+  .shadcn-input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .shadcn-select {
+    @apply flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .shadcn-badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+
+  .shadcn-badge-primary {
+    @apply border-transparent bg-primary text-primary-foreground hover:bg-primary/80;
+  }
+
+  .shadcn-badge-secondary {
+    @apply border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+
+  .shadcn-badge-outline {
+    @apply text-foreground;
+  }
+
+  .shadcn-table {
+    @apply w-full caption-bottom text-sm;
+  }
+
+  .shadcn-table-header {
+    @apply [&_tr]:border-b;
+  }
+
+  .shadcn-table-body {
+    @apply [&_tr:last-child]:border-0;
+  }
+
+  .shadcn-table-row {
+    @apply border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted;
+  }
+
+  .shadcn-table-head {
+    @apply h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0;
+  }
+
+  .shadcn-table-cell {
+    @apply p-4 align-middle [&:has([role=checkbox])]:pr-0;
+  }
+
+  /* Layout components */
+  .shadcn-sidebar {
+    @apply h-screen w-64 border-r bg-card p-4;
+  }
+
+  .shadcn-main-content {
+    @apply flex-1 overflow-auto p-6;
+  }
+
+  .shadcn-dashboard-card {
+    @apply rounded-lg border bg-card p-6 shadow-sm;
+  }
+
+  .shadcn-dashboard-stats {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4;
+  }
+
+  .shadcn-stat-card {
+    @apply flex flex-col space-y-2 rounded-lg border bg-card p-6 shadow-sm;
+  }
+
+  .shadcn-nav-item {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .shadcn-nav-item-active {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  /* Form components */
+  .shadcn-form-item {
+    @apply space-y-2;
+  }
+
+  .shadcn-form-label {
+    @apply text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70;
+  }
+
+  .shadcn-form-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .status-pending {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .status-processing {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .status-completed {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .status-cancelled {
+    @apply bg-red-100 text-red-800;
+  }
+
+  /* Category badges */
+  .category-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  .category-fans {
+    @apply bg-purple-100 text-purple-800;
+  }
+
+  .category-lights {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .category-wires {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .category-switches {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .category-sockets {
+    @apply bg-red-100 text-red-800;
+  }
+} 

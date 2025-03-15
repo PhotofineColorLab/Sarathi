@@ -7,6 +7,7 @@ import StaffList from './StaffList';
 import StaffForm from './StaffForm';
 import ProductList from './ProductList';
 import ProductForm from './ProductForm';
+import Settings from './Settings';
 import { useOrderStore } from '../store/orderStore';
 import { useStaffStore } from '../store/staffStore';
 import { useProductStore } from '../store/productStore';
@@ -14,7 +15,7 @@ import { useAuthStore } from '../store/authStore';
 import { Order, Staff } from '../types';
 
 const Dashboard: React.FC = () => {
-  const [activeView, setActiveView] = useState<'dashboard' | 'orders' | 'staff' | 'products'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'orders' | 'staff' | 'products' | 'settings'>('dashboard');
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showStaffForm, setShowStaffForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -160,6 +161,9 @@ const Dashboard: React.FC = () => {
             <p className="text-gray-600 mt-2">You don't have permission to view this page.</p>
           </div>
         );
+
+      case 'settings':
+        return <Settings />;
 
       default:
         return (

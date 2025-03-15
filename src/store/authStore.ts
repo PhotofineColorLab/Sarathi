@@ -16,6 +16,13 @@ const mockUsers: User[] = [
     name: 'Admin User'
   },
   {
+    id: 'admin2',
+    email: 'shubhamheda@sarathi.com',
+    password: 'admin123',
+    role: 'admin',
+    name: 'Shubham Heda'
+  },
+  {
     id: 'staff1',
     email: 'staff@electro.com',
     password: 'staff123',

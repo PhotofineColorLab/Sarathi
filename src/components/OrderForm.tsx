@@ -1,7 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Order, OrderItem } from '../types';
-import { X } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
 interface OrderFormProps {
@@ -45,21 +45,22 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Customer Name</label>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name</label>
         <input
           type="text"
           {...register('customerName')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          placeholder="Enter customer name"
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Image URL</label>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
         <input
           type="url"
           {...register('imageUrl')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           placeholder="https://example.com/image.jpg"
         />
         {imageUrl && (
@@ -68,7 +69,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
             <img
               src={imageUrl}
               alt="Order preview"
-              className="w-32 h-32 object-cover rounded-md border border-gray-300"
+              className="w-32 h-32 object-cover rounded-md border border-gray-200"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Invalid+URL';
               }}
@@ -77,11 +78,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
         )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Status</label>
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
         <select
           {...register('status')}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="pending">Pending</option>
           <option value="processing">Processing</option>
@@ -90,66 +91,69 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
         </select>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Items</label>
-        <div className="space-y-4">
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Items</label>
+        <div className="space-y-3 p-4 bg-gray-50 rounded-md">
           {items?.map((_, index) => (
-            <div key={index} className="flex gap-4">
+            <div key={index} className="flex gap-3 items-center">
               <input
                 type="text"
                 placeholder="Item name"
                 {...register(`items.${index}.name`)}
-                className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
               <input
                 type="number"
-                placeholder="Quantity"
+                placeholder="Qty"
                 {...register(`items.${index}.quantity`)}
-                className="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
               <input
                 type="number"
                 step="0.01"
                 placeholder="Price"
                 {...register(`items.${index}.price`)}
-                className="w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
               {index > 0 && (
                 <button
                   type="button"
                   onClick={() => handleRemoveItem(index)}
-                  className="text-red-500 hover:text-red-700"
+                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               )}
             </div>
           ))}
+          <button
+            type="button"
+            onClick={handleAddItem}
+            className="mt-2 flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            <Plus size={16} />
+            Add Item
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={handleAddItem}
-          className="mt-2 text-sm text-blue-500 hover:text-blue-700"
-        >
-          Add Item
-        </button>
       </div>
 
-      <div className="text-right text-lg font-semibold">
-        Total: ${total.toFixed(2)}
+      <div className="flex items-center justify-end p-3 bg-gray-50 rounded-md">
+        <span className="text-lg font-semibold">
+          Total: ${total.toFixed(2)}
+        </span>
       </div>
 
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4 pt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-white bg-blue-500 rounded-md hover:bg-blue-600"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           {initialData ? 'Update Order' : 'Create Order'}
         </button>
