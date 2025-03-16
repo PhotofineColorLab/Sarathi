@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Product } from '../types';
+import { useNotificationStore } from './notificationStore';
 
 // Sample product data
 const mockProducts: Product[] = [
@@ -264,22 +265,53 @@ interface ProductStore {
 
 export const useProductStore = create<ProductStore>((set) => ({
   products: mockProducts,
-  addProduct: (product) => set((state) => ({
-    products: [
-      ...state.products,
-      {
-        ...product,
-        id: `PROD${state.products.length + 1}`.padStart(7, '0'),
-        createdAt: new Date().toISOString()
-      }
-    ]
-  })),
-  updateProduct: (id, updatedProduct) => set((state) => ({
-    products: state.products.map((product) =>
-      product.id === id ? { ...product, ...updatedProduct } : product
-    )
-  })),
-  deleteProduct: (id) => set((state) => ({
-    products: state.products.filter((product) => product.id !== id)
-  }))
+  addProduct: (productData) => {
+    const notificationStore = useNotificationStore.getState();
+    const newProduct: Product = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...productData,
+      createdAt: new Date().toISOString()
+    };
+    
+    set((state) => ({
+      products: [newProduct, ...state.products]
+    }));
+
+    // Trigger notification
+    notificationStore.addNotification({
+      title: 'New Product Added',
+      message: `${newProduct.name} has been added to the inventory`,
+      type: 'success'
+    });
+  },
+  updateProduct: (id, productData) => {
+    const notificationStore = useNotificationStore.getState();
+    set((state) => ({
+      products: state.products.map((product) =>
+        product.id === id
+          ? { ...product, ...productData }
+          : product
+      )
+    }));
+
+    // Trigger notification
+    notificationStore.addNotification({
+      title: 'Product Updated',
+      message: `Product #${id} has been updated`,
+      type: 'info'
+    });
+  },
+  deleteProduct: (id) => {
+    const notificationStore = useNotificationStore.getState();
+    set((state) => ({
+      products: state.products.filter((product) => product.id !== id)
+    }));
+
+    // Trigger notification
+    notificationStore.addNotification({
+      title: 'Product Deleted',
+      message: `Product #${id} has been deleted`,
+      type: 'warning'
+    });
+  }
 })); 

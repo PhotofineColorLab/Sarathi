@@ -9,10 +9,12 @@ import ProductList from './ProductList';
 import ProductForm from './ProductForm';
 import Settings from './Settings';
 import Analytics from './Analytics';
+import Notifications from './Notifications';
 import { useOrderStore } from '../store/orderStore';
 import { useStaffStore } from '../store/staffStore';
 import { useProductStore } from '../store/productStore';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { Order, Staff } from '../types';
 
 // Define a type for the view options
@@ -28,6 +30,7 @@ const Dashboard: React.FC = () => {
   const { staff, addStaff, updateStaff, deleteStaff } = useStaffStore();
   const { products, addProduct, updateProduct, deleteProduct } = useProductStore();
   const user = useAuthStore(state => state.user);
+  const { notifications, markAsRead, clearAll } = useNotificationStore();
 
   const stats = {
     totalOrders: orders.length,
@@ -177,9 +180,16 @@ const Dashboard: React.FC = () => {
       default:
         return (
           <>
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome, {user?.name}</h1>
-              <p className="text-gray-600">Order management dashboard</p>
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Welcome, {user?.name}</h1>
+                <p className="text-gray-600">Order management dashboard</p>
+              </div>
+              <Notifications
+                notifications={notifications}
+                onMarkAsRead={markAsRead}
+                onClearAll={clearAll}
+              />
             </div>
             {user?.role === 'admin' && <DashboardStats stats={stats} />}
             <div className="mt-8">

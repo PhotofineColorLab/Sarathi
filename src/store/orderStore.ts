@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Order } from '../types';
 import { mockOrders } from '../data';
+import { useNotificationStore } from './notificationStore';
 
 interface OrderStore {
   orders: Order[];
@@ -11,20 +12,53 @@ interface OrderStore {
 
 export const useOrderStore = create<OrderStore>((set) => ({
   orders: mockOrders,
-  addOrder: (order) => set((state) => ({
-    orders: [...state.orders, {
-      ...order,
-      id: `ORD${String(state.orders.length + 1).padStart(3, '0')}`,
-      date: new Date().toISOString().split('T')[0],
-      imageUrl: order.imageUrl || 'https://via.placeholder.com/150?text=No+Image'
-    }]
-  })),
-  updateOrder: (id, updatedOrder) => set((state) => ({
-    orders: state.orders.map(order => 
-      order.id === id ? { ...order, ...updatedOrder } : order
-    )
-  })),
-  deleteOrder: (id) => set((state) => ({
-    orders: state.orders.filter(order => order.id !== id)
-  }))
+  addOrder: (orderData) => {
+    const notificationStore = useNotificationStore.getState();
+    const newOrder: Order = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...orderData,
+      date: new Date().toISOString()
+    };
+    
+    set((state) => ({
+      orders: [newOrder, ...state.orders]
+    }));
+
+    // Trigger notification
+    notificationStore.addNotification({
+      title: 'New Order Created',
+      message: `Order #${newOrder.id} has been created for ${newOrder.customerName}`,
+      type: 'success'
+    });
+  },
+  updateOrder: (id, orderData) => {
+    const notificationStore = useNotificationStore.getState();
+    set((state) => ({
+      orders: state.orders.map((order) =>
+        order.id === id
+          ? { ...order, ...orderData }
+          : order
+      )
+    }));
+
+    // Trigger notification
+    notificationStore.addNotification({
+      title: 'Order Updated',
+      message: `Order #${id} has been updated`,
+      type: 'info'
+    });
+  },
+  deleteOrder: (id) => {
+    const notificationStore = useNotificationStore.getState();
+    set((state) => ({
+      orders: state.orders.filter((order) => order.id !== id)
+    }));
+
+    // Trigger notification
+    notificationStore.addNotification({
+      title: 'Order Deleted',
+      message: `Order #${id} has been deleted`,
+      type: 'warning'
+    });
+  }
 }));
