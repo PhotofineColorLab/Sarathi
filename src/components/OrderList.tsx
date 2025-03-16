@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Order } from '../types';
-import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight, Search, Calendar } from 'lucide-react';
 import OrderForm from './OrderForm';
 import OrderDetails from './OrderDetails';
 import { useAuthStore } from '../store/authStore';
@@ -19,6 +19,8 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [ordersPerPage] = useState(5);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const user = useAuthStore(state => state.user);
 
   const getStatusColor = (status: Order['status']) => {
@@ -40,9 +42,25 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
     return user?.role === 'admin' || order.createdBy === user?.id;
   };
 
-  const filteredOrders = user?.role === 'admin' 
-    ? orders 
-    : orders.filter(order => order.createdBy === user?.id);
+  const filteredOrders = useMemo(() => {
+    return orders.filter(order => {
+      if (!startDate && !endDate) return true;
+      
+      const orderDate = new Date(order.date);
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      if (start && end) {
+        return orderDate >= start && orderDate <= end;
+      } else if (start) {
+        return orderDate >= start;
+      } else if (end) {
+        return orderDate <= end;
+      }
+      
+      return true;
+    });
+  }, [orders, startDate, endDate]);
 
   // Apply search filter
   const searchFilteredOrders = searchQuery
@@ -149,6 +167,36 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
             </select>
           </div>
         </div>
+      </div>
+      
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Calendar size={20} className="text-gray-500" />
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-gray-500">to</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        {(startDate || endDate) && (
+          <button
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+            }}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >
+            Clear dates
+          </button>
+        )}
       </div>
       
       <div className="overflow-x-auto">
