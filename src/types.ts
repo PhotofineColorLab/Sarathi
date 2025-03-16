@@ -11,6 +11,7 @@ export interface Order {
 
 export interface OrderItem {
   id: string;
+  productId: string;
   name: string;
   quantity: number;
   price: number;
@@ -29,7 +30,7 @@ export interface Staff {
   email: string;
   phone: string;
   password: string;
-  createdAt: string;
+  createdAt: Date;
 }
 
 export interface User {

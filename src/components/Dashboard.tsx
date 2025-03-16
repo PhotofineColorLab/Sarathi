@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Sidebar';
 import DashboardStats from './DashboardStats';
 import OrderList from './OrderList';
@@ -15,10 +15,124 @@ import { useStaffStore } from '../store/staffStore';
 import { useProductStore } from '../store/productStore';
 import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
-import { Order, Staff } from '../types';
+import { Order, Staff, Product } from '../types';
+import { AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Define a type for the view options
 type ViewType = 'dashboard' | 'orders' | 'staff' | 'products' | 'settings' | 'analytics';
+
+const ITEMS_PER_PAGE = 5;
+
+const LowStockAlerts: React.FC<{ products: Product[] }> = ({ products }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const lowStockProducts = useMemo(() => 
+    products.filter(product => product.stock <= 10)
+    .sort((a, b) => a.stock - b.stock), // Sort by lowest stock first
+  [products]);
+
+  const totalPages = Math.ceil(lowStockProducts.length / ITEMS_PER_PAGE);
+  
+  // Get current page items
+  const currentItems = lowStockProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  if (lowStockProducts.length === 0) return null;
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  };
+
+  return (
+    <div className="mb-8 bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="p-4 bg-red-50 border-b border-red-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="text-red-500" size={20} />
+            <h2 className="text-lg font-semibold text-red-700">Low Stock Alerts</h2>
+          </div>
+          <div className="text-sm text-gray-500">
+            Showing {Math.min(currentPage * ITEMS_PER_PAGE, lowStockProducts.length)} of {lowStockProducts.length} items
+          </div>
+        </div>
+      </div>
+      <div className="divide-y divide-gray-200">
+        {currentItems.map(product => (
+          <div key={product.id} className="p-4 hover:bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden">
+                  <img 
+                    src={product.imageUrl} 
+                    alt={product.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=No+Image';
+                    }}
+                  />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">{product.name}</h3>
+                  <p className="text-sm text-gray-500">{product.category}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">
+                  Stock: <span className="text-red-600">{product.stock}</span> units
+                </p>
+                <p className="text-sm text-gray-500">
+                  Price: ${product.price.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {totalPages > 1 && (
+        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <p className="text-sm text-gray-700">
+                Page <span className="font-medium">{currentPage}</span> of{' '}
+                <span className="font-medium">{totalPages}</span>
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                className={`relative inline-flex items-center px-2 py-2 rounded-md ${
+                  currentPage === 1
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className={`relative inline-flex items-center px-2 py-2 rounded-md ${
+                  currentPage === totalPages
+                    ? 'text-gray-400 cursor-not-allowed'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Dashboard: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('dashboard');
@@ -28,9 +142,14 @@ const Dashboard: React.FC = () => {
 
   const { orders, addOrder, updateOrder, deleteOrder } = useOrderStore();
   const { staff, addStaff, updateStaff, deleteStaff } = useStaffStore();
-  const { products, addProduct, updateProduct, deleteProduct } = useProductStore();
+  const { products, addProduct, updateProduct, deleteProduct, checkLowStock } = useProductStore();
   const user = useAuthStore(state => state.user);
   const { notifications, markAsRead, clearAll } = useNotificationStore();
+
+  // Check for low stock products when dashboard loads
+  useEffect(() => {
+    checkLowStock();
+  }, []);
 
   const stats = {
     totalOrders: orders.length,
@@ -192,7 +311,15 @@ const Dashboard: React.FC = () => {
               />
             </div>
             {user?.role === 'admin' && <DashboardStats stats={stats} />}
+            
+            {/* Low Stock Alerts Section */}
             <div className="mt-8">
+              <LowStockAlerts products={products} />
+            </div>
+
+            {/* Recent Orders Section */}
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Orders</h2>
               <OrderList 
                 orders={orders.slice(0, 5)} 
                 showActions={false}

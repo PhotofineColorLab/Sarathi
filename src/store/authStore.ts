@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types';
+import { useStaffStore } from './staffStore';
 
 interface AuthStore {
   user: User | null;
@@ -21,24 +22,35 @@ const mockUsers: User[] = [
     password: 'admin123',
     role: 'admin',
     name: 'Shubham Heda'
-  },
-  {
-    id: 'staff1',
-    email: 'staff@electro.com',
-    password: 'staff123',
-    role: 'staff',
-    name: 'Staff User'
   }
 ];
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   login: (email, password) => {
-    const user = mockUsers.find(u => u.email === email && u.password === password);
-    if (user) {
-      set({ user });
+    // First check mock admin users
+    const adminUser = mockUsers.find(u => u.email === email && u.password === password);
+    if (adminUser) {
+      set({ user: adminUser });
       return true;
     }
+
+    // Then check staff users
+    const { staff } = useStaffStore.getState();
+    const staffUser = staff.find(s => s.email === email && s.password === password);
+    if (staffUser) {
+      set({
+        user: {
+          id: staffUser.id,
+          email: staffUser.email,
+          password: staffUser.password,
+          role: 'staff',
+          name: staffUser.name
+        }
+      });
+      return true;
+    }
+
     return false;
   },
   logout: () => set({ user: null })

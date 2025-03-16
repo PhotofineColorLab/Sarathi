@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Order, OrderItem } from '../types';
-import { X, Plus } from 'lucide-react';
+import { Order, OrderItem, Product } from '../types';
+import { X, Plus, Search } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { useProductStore } from '../store/productStore';
 
 interface OrderFormProps {
   onSubmit: (data: Partial<Order>) => void;
@@ -14,23 +15,80 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
   const { register, handleSubmit, watch, setValue } = useForm({
     defaultValues: initialData || {
       customerName: '',
-      items: [{ id: '1', name: '', quantity: 1, price: 0 }],
+      items: [],
       status: 'pending',
       imageUrl: ''
     }
   });
 
+  const [showProductSearch, setShowProductSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const user = useAuthStore(state => state.user);
+  const { products, updateProduct } = useProductStore();
+  
   const items = watch('items') as OrderItem[];
   const imageUrl = watch('imageUrl');
   const total = items?.reduce((sum, item) => sum + (item.quantity * item.price), 0) || 0;
 
+  // Filter products based on search query
+  const filteredProducts = products.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleFormSubmit = (data: any) => {
+    // Update product stock levels
+    items.forEach(item => {
+      const product = products.find(p => p.id === item.productId);
+      if (product) {
+        updateProduct(product.id, {
+          stock: product.stock - item.quantity
+        });
+      }
+    });
+
     onSubmit({
       ...data,
       total,
       createdBy: user?.id || ''
     });
+  };
+
+  const handleAddProduct = (product: Product) => {
+    if (product.stock <= 0) {
+      alert('This product is out of stock!');
+      return;
+    }
+
+    const existingItem = items.find(item => item.productId === product.id);
+    
+    if (existingItem) {
+      if (existingItem.quantity >= product.stock) {
+        alert('Cannot add more units than available in stock!');
+        return;
+      }
+      
+      const updatedItems = items.map(item =>
+        item.productId === product.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      );
+      setValue('items', updatedItems);
+    } else {
+      setValue('items', [
+        ...items,
+        {
+          id: String(items.length + 1),
+          productId: product.id,
+          name: product.name,
+          quantity: 1,
+          price: product.price
+        }
+      ]);
+    }
+    setShowProductSearch(false);
+    setSearchQuery('');
   };
 
   const handleRemoveItem = (index: number) => {
@@ -39,8 +97,19 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
     setValue('items', newItems);
   };
 
-  const handleAddItem = () => {
-    setValue('items', [...items, { id: String(items.length + 1), name: '', quantity: 1, price: 0 }]);
+  const handleQuantityChange = (index: number, value: number) => {
+    const item = items[index];
+    const product = products.find(p => p.id === item.productId);
+    
+    if (product && value > product.stock) {
+      alert('Cannot set quantity higher than available stock!');
+      return;
+    }
+
+    const newItems = items.map((item, i) =>
+      i === index ? { ...item, quantity: value } : item
+    );
+    setValue('items', newItems);
   };
 
   return (
@@ -94,46 +163,77 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-1">Items</label>
         <div className="space-y-3 p-4 bg-gray-50 rounded-md">
-          {items?.map((_, index) => (
-            <div key={index} className="flex gap-3 items-center">
-              <input
-                type="text"
-                placeholder="Item name"
-                {...register(`items.${index}.name`)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="number"
-                placeholder="Qty"
-                {...register(`items.${index}.quantity`)}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Price"
-                {...register(`items.${index}.price`)}
-                className="w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-              {index > 0 && (
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(index)}
-                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              )}
-            </div>
-          ))}
+          {/* Product Search */}
           <button
             type="button"
-            onClick={handleAddItem}
-            className="mt-2 flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+            onClick={() => setShowProductSearch(true)}
+            className="w-full px-4 py-2 text-sm text-blue-600 border border-blue-300 rounded-md hover:bg-blue-50 flex items-center justify-center gap-2"
           >
             <Plus size={16} />
-            Add Item
+            Add Product
           </button>
+
+          {showProductSearch && (
+            <div className="mt-2 p-4 border border-gray-200 rounded-md bg-white">
+              <div className="flex items-center gap-2 mb-3">
+                <Search size={18} className="text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {filteredProducts.map(product => (
+                  <div
+                    key={product.id}
+                    onClick={() => handleAddProduct(product)}
+                    className="flex items-center justify-between p-2 hover:bg-gray-50 cursor-pointer rounded-md"
+                  >
+                    <div>
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-sm text-gray-500">{product.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">${product.price.toFixed(2)}</p>
+                      <p className="text-sm text-gray-500">Stock: {product.stock}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Selected Items */}
+          {items.map((item, index) => (
+            <div key={index} className="flex gap-3 items-center bg-white p-3 rounded-md border border-gray-200">
+              <div className="flex-1">
+                <p className="font-medium">{item.name}</p>
+                <p className="text-sm text-gray-500">
+                  ${item.price.toFixed(2)} each
+                </p>
+              </div>
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) => handleQuantityChange(index, parseInt(e.target.value))}
+                className="w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+              <p className="w-24 text-right font-medium">
+                ${(item.quantity * item.price).toFixed(2)}
+              </p>
+              <button
+                type="button"
+                onClick={() => handleRemoveItem(index)}
+                className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 

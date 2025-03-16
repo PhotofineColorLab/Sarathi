@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { Product } from '../types';
 import { useNotificationStore } from './notificationStore';
 
+const LOW_STOCK_THRESHOLD = 10;
+
 // Sample product data
 const mockProducts: Product[] = [
   {
@@ -261,9 +263,10 @@ interface ProductStore {
   addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+  checkLowStock: () => void;
 }
 
-export const useProductStore = create<ProductStore>((set) => ({
+export const useProductStore = create<ProductStore>((set, get) => ({
   products: mockProducts,
   addProduct: (productData) => {
     const notificationStore = useNotificationStore.getState();
@@ -277,6 +280,15 @@ export const useProductStore = create<ProductStore>((set) => ({
       products: [newProduct, ...state.products]
     }));
 
+    // Check if new product has low stock
+    if (newProduct.stock <= LOW_STOCK_THRESHOLD) {
+      notificationStore.addNotification({
+        title: 'Low Stock Alert',
+        message: `${newProduct.name} has only ${newProduct.stock} units remaining`,
+        type: 'warning'
+      });
+    }
+
     // Trigger notification
     notificationStore.addNotification({
       title: 'New Product Added',
@@ -286,6 +298,8 @@ export const useProductStore = create<ProductStore>((set) => ({
   },
   updateProduct: (id, productData) => {
     const notificationStore = useNotificationStore.getState();
+    const currentProduct = get().products.find(p => p.id === id);
+    
     set((state) => ({
       products: state.products.map((product) =>
         product.id === id
@@ -293,6 +307,17 @@ export const useProductStore = create<ProductStore>((set) => ({
           : product
       )
     }));
+
+    // Check if stock was updated and is now low
+    if (productData.stock !== undefined && currentProduct) {
+      if (productData.stock <= LOW_STOCK_THRESHOLD) {
+        notificationStore.addNotification({
+          title: 'Low Stock Alert',
+          message: `${currentProduct.name} has only ${productData.stock} units remaining`,
+          type: 'warning'
+        });
+      }
+    }
 
     // Trigger notification
     notificationStore.addNotification({
@@ -312,6 +337,20 @@ export const useProductStore = create<ProductStore>((set) => ({
       title: 'Product Deleted',
       message: `Product #${id} has been deleted`,
       type: 'warning'
+    });
+  },
+  checkLowStock: () => {
+    const notificationStore = useNotificationStore.getState();
+    const { products } = get();
+    
+    products.forEach(product => {
+      if (product.stock <= LOW_STOCK_THRESHOLD) {
+        notificationStore.addNotification({
+          title: 'Low Stock Alert',
+          message: `${product.name} has only ${product.stock} units remaining`,
+          type: 'warning'
+        });
+      }
     });
   }
 })); 

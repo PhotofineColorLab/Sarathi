@@ -12,6 +12,16 @@ interface StaffListProps {
 const StaffList: React.FC<StaffListProps> = ({ staff, onUpdate, onDelete }) => {
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
 
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+
   if (editingStaff) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -51,7 +61,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onUpdate, onDelete }) => {
                   <td className="py-3 px-4">{staffMember.name}</td>
                   <td className="py-3 px-4">{staffMember.email}</td>
                   <td className="py-3 px-4">{staffMember.phone}</td>
-                  <td className="py-3 px-4">{staffMember.createdAt}</td>
+                  <td className="py-3 px-4">{formatDate(staffMember.createdAt)}</td>
                   <td className="py-3 px-4">
                     <div className="flex gap-2">
                       <button
