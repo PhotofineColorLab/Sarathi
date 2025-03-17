@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Order, OrderItem, Product, OrderStatus } from '../types';
-import { X, Plus, Search, Calendar } from 'lucide-react';
+import { Order, OrderItem, Product } from '../types';
+import { X, Plus, Search } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useProductStore } from '../store/productStore';
 
@@ -23,18 +23,14 @@ type OrderFormValues = {
 };
 
 const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }) => {
-  // Format today's date as YYYY-MM-DD for the date input
-  const today = new Date().toISOString().split('T')[0];
-  
-  const { register, handleSubmit, watch, setValue } = useForm<OrderFormValues>({
+  const { register, handleSubmit, watch, setValue } = useForm({
     defaultValues: initialData || {
       customerName: '',
       customerEmail: '',
       customerPhone: '',
       items: [],
       status: 'pending',
-      imageUrl: '',
-      date: today
+      imageUrl: ''
     }
   });
 
