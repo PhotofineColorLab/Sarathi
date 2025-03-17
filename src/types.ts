@@ -1,12 +1,18 @@
+export type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+
 export interface Order {
   id: string;
   customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   items: OrderItem[];
   total: number;
-  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  status: OrderStatus;
+  createdAt: Date;
+  activities: OrderActivity[];
   date: string;
   imageUrl?: string;
-  createdBy: string;
+  createdBy?: string;
 }
 
 export interface OrderItem {
@@ -52,4 +58,11 @@ export interface Product {
   imageUrl: string;
   stock: number;
   createdAt: string;
+}
+
+export interface OrderActivity {
+  staffId: string;
+  staffName: string;
+  action: 'viewed' | 'modified';
+  timestamp: Date;
 }

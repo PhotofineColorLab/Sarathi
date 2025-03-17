@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { Order } from '../types';
-import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight, Search, Calendar } from 'lucide-react';
+import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight, Search, Calendar, Info } from 'lucide-react';
 import OrderForm from './OrderForm';
 import OrderDetails from './OrderDetails';
 import { useAuthStore } from '../store/authStore';
+import { useOrderStore } from '../store/orderStore';
 
 interface OrderListProps {
   orders: Order[];
@@ -21,7 +22,9 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
   const [ordersPerPage] = useState(5);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [showActivityPopup, setShowActivityPopup] = useState<string | null>(null);
   const user = useAuthStore(state => state.user);
+  const { trackOrderActivity } = useOrderStore();
 
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
@@ -94,6 +97,62 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
+  };
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
+
+  const getLatestActivity = (order: Order) => {
+    if (!order.activities || order.activities.length === 0) return null;
+    return order.activities[order.activities.length - 1];
+  };
+
+  const handleViewOrder = (order: Order) => {
+    trackOrderActivity(order.id, 'viewed');
+    setViewingOrder(order);
+  };
+
+  const handleEditOrder = (order: Order) => {
+    trackOrderActivity(order.id, 'modified');
+    setEditingOrder(order);
+  };
+
+  const ActivityPopup = ({ orderId }: { orderId: string }) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !order.activities) return null;
+
+    return (
+      <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-3">Activity History</h3>
+          <div className="space-y-3 max-h-60 overflow-y-auto">
+            {order.activities.map((activity, index) => (
+              <div key={index} className="flex items-start space-x-3 text-sm">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  {activity.staffName.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900">{activity.staffName}</p>
+                  <p className="text-gray-500">
+                    {activity.action === 'viewed' ? 'Viewed' : 'Modified'} the order
+                  </p>
+                  <p className="text-gray-400 text-xs">
+                    {formatDate(activity.timestamp)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (viewingOrder) {
@@ -208,57 +267,90 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              {user?.role === 'admin' && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
+              )}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">View Order</th>
               {showActions && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {currentOrders.length > 0 ? (
-              currentOrders.map((order) => (
-                <tr key={order.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{order.customerName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">${order.total.toFixed(2)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => setViewingOrder(order)}
-                      className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                      <Eye size={18} />
-                      <span>View</span>
-                    </button>
-                  </td>
-                  {showActions && (
+              currentOrders.map((order) => {
+                const latestActivity = getLatestActivity(order);
+                return (
+                  <tr key={order.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{order.customerName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">${order.total.toFixed(2)}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {canModifyOrder(order) && (
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => setEditingOrder(order)}
-                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
-                          >
-                            <Pencil size={18} />
-                          </button>
-                          <button
-                            onClick={() => onDelete?.(order.id)}
-                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      )}
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </span>
                     </td>
-                  )}
-                </tr>
-              ))
+                    {user?.role === 'admin' && (
+                      <td className="px-6 py-4 whitespace-nowrap relative">
+                        <div className="flex items-center gap-2">
+                          {latestActivity ? (
+                            <>
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-900">{latestActivity.staffName}</div>
+                                <div className="text-gray-500">
+                                  {latestActivity.action === 'viewed' ? 'Viewed' : 'Modified'}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setShowActivityPopup(showActivityPopup === order.id ? null : order.id)}
+                                className="p-1 hover:bg-gray-100 rounded-full"
+                              >
+                                <Info size={16} className="text-blue-500" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-gray-400">No activity</span>
+                          )}
+                          {showActivityPopup === order.id && (
+                            <ActivityPopup orderId={order.id} />
+                          )}
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleViewOrder(order)}
+                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <Eye size={18} />
+                        <span>View</span>
+                      </button>
+                    </td>
+                    {showActions && (
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {canModifyOrder(order) && (
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleEditOrder(order)}
+                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                            <button
+                              onClick={() => onDelete?.(order.id)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan={showActions ? 7 : 6} className="py-8 text-center text-gray-500">
+                <td colSpan={showActions ? (user?.role === 'admin' ? 8 : 7) : (user?.role === 'admin' ? 7 : 6)} className="py-8 text-center text-gray-500">
                   No orders found with the selected status.
                 </td>
               </tr>
