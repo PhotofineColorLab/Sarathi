@@ -133,7 +133,7 @@ const mockProducts: Product[] = [
     "price": 149.99,
     "category": "Lights",
     "imageUrl": "https://plus.unsplash.com/premium_photo-1685287731216-a7a0fae7a41a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "stock": 8,
+    "stock": 28,
     "createdAt": "2024-03-15T11:00:00Z"
   },
   {
@@ -193,7 +193,7 @@ const mockProducts: Product[] = [
     "price": 49.99,
     "category": "Fans",
     "imageUrl": "https://plus.unsplash.com/premium_photo-1685287731216-a7a0fae7a41a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "stock": 10,
+    "stock": 17,
     "createdAt": "2024-03-15T11:30:00Z"
   },
   {
@@ -253,7 +253,7 @@ const mockProducts: Product[] = [
     "price": 299.99,
     "category": "Fans",
     "imageUrl": "https://plus.unsplash.com/premium_photo-1685287731216-a7a0fae7a41a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-    "stock": 5,
+    "stock": 50,
     "createdAt": "2024-03-15T12:00:00Z"
   }
 ];
