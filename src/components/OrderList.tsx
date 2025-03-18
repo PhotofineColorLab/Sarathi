@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Order } from '../types';
-import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight, Search, Calendar, Info } from 'lucide-react';
+import { Pencil, Trash2, Filter, Eye, ChevronLeft, ChevronRight, Search, Calendar, Info, ZoomIn } from 'lucide-react';
 import OrderForm from './OrderForm';
 import OrderDetails from './OrderDetails';
 import { useAuthStore } from '../store/authStore';
 import { useOrderStore } from '../store/orderStore';
+import ImageModal from './ImageModal';
 
 interface OrderListProps {
   orders: Order[];
@@ -23,6 +24,9 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [showActivityPopup, setShowActivityPopup] = useState<string | null>(null);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState('');
+  
   const user = useAuthStore(state => state.user);
   const { trackOrderActivity } = useOrderStore();
 
@@ -43,6 +47,14 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
 
   const canModifyOrder = (order: Order) => {
     return user?.role === 'admin' || order.createdBy === user?.id;
+  };
+  
+  const handleImageClick = (imageUrl: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the row click event
+    if (imageUrl) {
+      setSelectedImage(imageUrl);
+      setImageModalOpen(true);
+    }
   };
 
   const filteredOrders = useMemo(() => {
@@ -184,6 +196,7 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
     );
   }
 
+  // After pagination logic and before return
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex justify-between items-center mb-6">
@@ -250,108 +263,144 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
             onClick={() => {
               setStartDate('');
               setEndDate('');
+              setCurrentPage(1); // Reset to first page when date filter is cleared
             }}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-blue-600 hover:text-blue-800"
           >
-            Clear dates
+            Clear Dates
           </button>
         )}
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              {user?.role === 'admin' && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activity</th>
-              )}
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">View Order</th>
-              {showActions && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Order ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Customer
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Total
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Image
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {currentOrders.length > 0 ? (
-              currentOrders.map((order) => {
-                const latestActivity = getLatestActivity(order);
-                return (
-                  <tr key={order.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{order.customerName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">${order.total.toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                      </span>
-                    </td>
-                    {user?.role === 'admin' && (
-                      <td className="px-6 py-4 whitespace-nowrap relative">
-                        <div className="flex items-center gap-2">
-                          {latestActivity ? (
-                            <>
-                              <div className="text-sm">
-                                <div className="font-medium text-gray-900">{latestActivity.staffName}</div>
-                                <div className="text-gray-500">
-                                  {latestActivity.action === 'viewed' ? 'Viewed' : 'Modified'}
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => setShowActivityPopup(showActivityPopup === order.id ? null : order.id)}
-                                className="p-1 hover:bg-gray-100 rounded-full"
-                              >
-                                <Info size={16} className="text-blue-500" />
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-gray-400">No activity</span>
-                          )}
-                          {showActivityPopup === order.id && (
-                            <ActivityPopup orderId={order.id} />
-                          )}
+            {currentOrders.map((order) => (
+              <tr 
+                key={order.id} 
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleViewOrder(order)}
+              >
+                <td className="px-6 py-4 whitespace-nowrap">{order.id}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{order.customerName}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{order.date}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                    {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">${order.total.toFixed(2)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {order.imageUrl && (
+                    <div 
+                      className="relative overflow-hidden rounded-md cursor-pointer group"
+                      onClick={(e) => handleImageClick(order.imageUrl || '', e)}
+                    >
+                      <img 
+                        src={order.imageUrl} 
+                        alt={`Order ${order.id}`}
+                        className="w-12 h-12 object-cover rounded-md transition-transform duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=No+Image';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white p-1 rounded-full">
+                          <ZoomIn size={10} className="text-gray-700" />
                         </div>
-                      </td>
+                      </div>
+                    </div>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex gap-2 items-center">
+                    <button
+                      className="p-1.5 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewOrder(order);
+                      }}
+                      title="View Order"
+                    >
+                      <Eye size={18} />
+                    </button>
+                    
+                    {showActions && canModifyOrder(order) && (
+                      <>
+                        <button
+                          className="p-1.5 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditOrder(order);
+                          }}
+                          title="Edit Order"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          className="p-1.5 text-red-600 hover:text-red-800 rounded-full hover:bg-red-50 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm('Are you sure you want to delete this order?')) {
+                              onDelete?.(order.id);
+                            }
+                          }}
+                          title="Delete Order"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => handleViewOrder(order)}
-                        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors"
-                      >
-                        <Eye size={18} />
-                        <span>View</span>
-                      </button>
-                    </td>
-                    {showActions && (
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {canModifyOrder(order) && (
-                          <div className="flex gap-3">
-                            <button
-                              onClick={() => handleEditOrder(order)}
-                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                            <button
-                              onClick={() => onDelete?.(order.id)}
-                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        )}
-                      </td>
+                    
+                    {order.activities && order.activities.length > 0 && (
+                      <div className="relative">
+                        <button
+                          className={`p-1.5 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-50 transition-colors ${showActivityPopup === order.id ? 'bg-gray-50' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowActivityPopup(prev => prev === order.id ? null : order.id);
+                          }}
+                          title="Activity History"
+                        >
+                          <Info size={18} />
+                        </button>
+                        {showActivityPopup === order.id && <ActivityPopup orderId={order.id} />}
+                      </div>
                     )}
-                  </tr>
-                );
-              })
-            ) : (
+                  </div>
+                </td>
+              </tr>
+            ))}
+
+            {currentOrders.length === 0 && (
               <tr>
-                <td colSpan={showActions ? (user?.role === 'admin' ? 8 : 7) : (user?.role === 'admin' ? 7 : 6)} className="py-8 text-center text-gray-500">
-                  No orders found with the selected status.
+                <td className="px-6 py-4 whitespace-nowrap text-center text-gray-500" colSpan={7}>
+                  No orders found
                 </td>
               </tr>
             )}
@@ -360,54 +409,64 @@ const OrderList: React.FC<OrderListProps> = ({ orders, onUpdate, onDelete, showA
       </div>
 
       {/* Pagination */}
-      {statusFilteredOrders.length > 0 && (
-        <div className="flex justify-between items-center mt-6 px-4">
+      {totalPages > 1 && (
+        <div className="flex justify-between items-center mt-4">
           <div className="text-sm text-gray-500">
             Showing {indexOfFirstOrder + 1} to {Math.min(indexOfLastOrder, statusFilteredOrders.length)} of {statusFilteredOrders.length} orders
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex gap-2 items-center">
             <button
               onClick={goToPreviousPage}
               disabled={currentPage === 1}
-              className={`p-2 rounded-md ${
-                currentPage === 1
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
+              className={`p-2 rounded-md ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} />
             </button>
             
-            <div className="flex space-x-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
-                <button
-                  key={number}
-                  onClick={() => paginate(number)}
-                  className={`px-3 py-1 rounded-md ${
-                    currentPage === number
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {number}
-                </button>
-              ))}
-            </div>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(number => {
+                const isFirstPage = number === 1;
+                const isLastPage = number === totalPages;
+                const isCurrentPage = number === currentPage;
+                const isNearCurrentPage = Math.abs(number - currentPage) <= 1;
+                return isFirstPage || isLastPage || isCurrentPage || isNearCurrentPage;
+              })
+              .map((number, index, array) => {
+                const isPrevValueNotConsecutive = index > 0 && array[index] - array[index - 1] > 1;
+                
+                return (
+                  <React.Fragment key={number}>
+                    {isPrevValueNotConsecutive && <span className="text-gray-500">...</span>}
+                    <button
+                      onClick={() => paginate(number)}
+                      className={`px-3 py-1 rounded-md ${currentPage === number 
+                        ? 'bg-blue-500 text-white' 
+                        : 'text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      {number}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
             
             <button
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
-              className={`p-2 rounded-md ${
-                currentPage === totalPages
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
+              className={`p-2 rounded-md ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-100'}`}
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
       )}
+      
+      {/* Image Modal */}
+      <ImageModal
+        imageUrl={selectedImage}
+        alt="Order image"
+        isOpen={imageModalOpen}
+        onClose={() => setImageModalOpen(false)}
+      />
     </div>
   );
 };

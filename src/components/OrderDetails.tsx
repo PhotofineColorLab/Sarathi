@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Order } from '../types';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, ZoomIn } from 'lucide-react';
 import InvoiceGenerator from './InvoiceGenerator';
+import ImageModal from './ImageModal';
 
 interface OrderDetailsProps {
   order: Order;
@@ -10,6 +11,8 @@ interface OrderDetailsProps {
 }
 
 const OrderDetails: React.FC<OrderDetailsProps> = ({ order, onClose, onEdit }) => {
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
       case 'pending':
@@ -82,16 +85,34 @@ const OrderDetails: React.FC<OrderDetailsProps> = ({ order, onClose, onEdit }) =
           {order.imageUrl && (
             <div className="space-y-2">
               <h3 className="text-lg font-medium">Order Image</h3>
-              <img 
-                src={order.imageUrl} 
-                alt={`Order ${order.id}`} 
-                className="w-full max-w-xs h-auto object-cover rounded-md border border-gray-200"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=No+Image';
-                }}
-              />
+              <div 
+                className="relative group cursor-pointer overflow-hidden rounded-md"
+                onClick={() => setIsImageModalOpen(true)}
+              >
+                <img 
+                  src={order.imageUrl} 
+                  alt={`Order ${order.id}`} 
+                  className="w-full max-w-xs h-auto object-cover rounded-md border border-gray-200 transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x200?text=No+Image';
+                  }}
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white p-2 rounded-full">
+                    <ZoomIn size={20} className="text-gray-700" />
+                  </div>
+                </div>
+              </div>
             </div>
           )}
+          
+          {/* Image Modal for full-screen view */}
+          <ImageModal 
+            imageUrl={order.imageUrl || ''} 
+            alt={`Order ${order.id}`}
+            isOpen={isImageModalOpen}
+            onClose={() => setIsImageModalOpen(false)}
+          />
         </div>
       </div>
 

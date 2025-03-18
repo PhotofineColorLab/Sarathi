@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Order, OrderItem, Product, OrderStatus } from '../types';
-import { X, Plus, Search, Calendar } from 'lucide-react';
+import { X, Plus, Search, Calendar, Upload, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useProductStore } from '../store/productStore';
+import { useNotificationStore } from '../store/notificationStore';
 
 interface OrderFormProps {
   onSubmit: (data: Partial<Order>) => void;
@@ -40,9 +41,13 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
 
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   
   const user = useAuthStore(state => state.user);
   const { products, updateProduct } = useProductStore();
+  const addNotification = useNotificationStore(state => state.addNotification);
   
   const items = watch('items') as OrderItem[];
   const imageUrl = watch('imageUrl');
@@ -129,6 +134,80 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
     setValue('items', newItems);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Check file size (limit to 2MB)
+      const maxSize = 2 * 1024 * 1024; // 2MB
+      if (file.size > maxSize) {
+        addNotification({
+          title: 'Error',
+          message: 'Image size must be less than 2MB',
+          type: 'error'
+        });
+        return;
+      }
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        addNotification({
+          title: 'Error',
+          message: 'File must be an image',
+          type: 'error'
+        });
+        return;
+      }
+      
+      setImageFile(file);
+      
+      // Generate preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async () => {
+    if (!imageFile) return;
+    
+    setUploadingImage(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const response = await fetch('http://localhost:5000/api/upload/orders', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setValue('imageUrl', result.data.imageUrl);
+        addNotification({
+          title: 'Success',
+          message: 'Image uploaded successfully',
+          type: 'success'
+        });
+      } else {
+        throw new Error(result.message || 'Failed to upload image');
+      }
+    } catch (error) {
+      addNotification({
+        title: 'Error',
+        message: error instanceof Error ? error.message : 'Failed to upload image',
+        type: 'error'
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div className="mb-4">
@@ -139,6 +218,27 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
           className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           placeholder="Enter customer name"
         />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input
+            type="email"
+            {...register('customerEmail')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="customer@example.com"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+          <input
+            type="tel"
+            {...register('customerPhone')}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            placeholder="555-123-4567"
+          />
+        </div>
       </div>
 
       <div className="mb-4">
@@ -156,19 +256,74 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmit, initialData, onCancel }
       </div>
 
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-        <input
-          type="url"
-          {...register('imageUrl')}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-          placeholder="https://example.com/image.jpg"
-        />
-        {imageUrl && (
+        <label className="block text-sm font-medium text-gray-700 mb-1">Order Image</label>
+        <div className="mt-1 flex items-center space-x-4">
+          <div className="flex-1">
+            <div className="flex items-center justify-center px-6 py-4 border-2 border-gray-300 border-dashed rounded-md">
+              <div className="space-y-1 text-center">
+                <div className="flex text-sm text-gray-600">
+                  <label
+                    htmlFor="file-upload"
+                    className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none"
+                  >
+                    <span>Upload a file</span>
+                    <input
+                      id="file-upload"
+                      name="file-upload"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                  <p className="pl-1">or drag and drop</p>
+                </div>
+                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
+              </div>
+            </div>
+          </div>
+          
+          {imageFile && (
+            <div className="flex flex-col items-center">
+              <div className="w-24 h-24 mb-2 border rounded-md overflow-hidden">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={uploadImage}
+                disabled={uploadingImage}
+                className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-1"
+              >
+                {uploadingImage ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={12} />
+                    Upload
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Hidden input for imageUrl */}
+        <input type="hidden" {...register('imageUrl')} />
+        
+        {/* Show uploaded image if available */}
+        {imageUrl && !previewUrl && (
           <div className="mt-2">
-            <p className="text-sm font-medium text-gray-700 mb-1">Image Preview:</p>
+            <p className="text-sm font-medium text-gray-700 mb-1">Uploaded Image:</p>
             <img
               src={imageUrl}
-              alt="Order preview"
+              alt="Order"
               className="w-32 h-32 object-cover rounded-md border border-gray-200"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150?text=Invalid+URL';
